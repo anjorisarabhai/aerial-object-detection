@@ -430,12 +430,44 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            margin-top: 1rem; /* Added margin-top for spacing */
         }
 
         .download-btn:hover {
             background: hsl(var(--accent-dark));
             transform: translateY(-1px);
         }
+
+        /* Upload Another Image button in results */
+        .upload-another-btn {
+            display: block; /* Make it a block element to center with margin auto */
+            width: fit-content; /* Adjust width to content */
+            margin: 2rem auto 0; /* Center horizontally with top margin */
+            padding: 12px 24px;
+            background: linear-gradient(135deg, hsl(var(--secondary-dark)), hsl(var(--secondary-foreground))); /* Using secondary colors for contrast */
+            color: hsl(var(--primary-foreground)); /* White text */
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        body.dark .upload-another-btn {
+            background: linear-gradient(135deg, hsl(var(--secondary-foreground)), hsl(var(--secondary-dark)));
+            color: hsl(var(--foreground-dark));
+        }
+
+        .upload-another-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px hsla(var(--secondary-dark), 0.4);
+        }
+
 
         /* Gallery Section */
         .gallery-section {
@@ -809,7 +841,7 @@
         <!-- Hero Section -->
         <div class="hero">
             <h1>Advanced Aerial Object Detection</h1>
-            <p>Upload your aerial images and let our AI-powered detection system identify objects with precision and speed.</p>
+            <p>Upload your aerial images and let our advanced machine learning and deep learning algorithms identify objects with precision and speed.</p>
         </div>
 
         <!-- Upload Section -->
@@ -854,6 +886,10 @@
                     </button>
                 </div>
             </div>
+            <button class="upload-another-btn" onclick="resetUI()">
+                <i class="fas fa-upload"></i>
+                Upload Another Image
+            </button>
         </div>
 
         <!-- Gallery Section -->
@@ -985,7 +1021,7 @@
 
         // File handling functions
         function handleFileSelect(e) {
-            const file = e.target.files[0];
+            const file = e.target.files[0]; // Only process the first file for single upload
             if (file) {
                 displayImagePreview(file);
             }
@@ -1007,19 +1043,30 @@
             
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                elements.fileInput.files = files;
+                // For single image processing, we only take the first file
+                elements.fileInput.files = new FileListItems([files[0]]);
                 displayImagePreview(files[0]);
             }
         }
 
+        // Helper to create a FileList-like object for single file assignment
+        function FileListItems(files) {
+            const b = new ClipboardEvent("").clipboardData || new DataTransfer();
+            for (let i = 0, len = files.length; i < len; i++) b.items.add(files[i]);
+            return b.files;
+        }
+
+
         function displayImagePreview(file) {
             if (!file.type.startsWith('image/')) {
                 showNotification('error', 'Invalid File', 'Please select a valid image file.');
+                elements.fileInput.value = ''; // Clear file input
                 return;
             }
 
             if (file.size > 16 * 1024 * 1024) {
                 showNotification('error', 'File Too Large', 'Please select an image smaller than 16MB.');
+                elements.fileInput.value = ''; // Clear file input
                 return;
             }
 
@@ -1106,7 +1153,10 @@
 
             elements.detectionStats.innerHTML = `<div class="stat-badge">Total: ${total}</div>`;
 
-            Object.entries(stats).forEach(([className, count]) => {
+            // Sort stats alphabetically by class name for consistent display
+            const sortedStats = Object.entries(stats).sort((a, b) => a[0].localeCompare(b[0]));
+
+            sortedStats.forEach(([className, count]) => {
                 const badge = document.createElement('div');
                 badge.className = 'stat-badge';
                 badge.textContent = `${className}: ${count}`;
@@ -1119,7 +1169,8 @@
                 currentPanzoom.destroy();
             }
 
-            image.onload = function() {
+            // Ensure image is loaded before setting up panzoom
+            if (image.complete) {
                 currentPanzoom = Panzoom(image, {
                     maxScale: 5,
                     minScale: 0.5,
@@ -1127,9 +1178,19 @@
                     animate: true,
                     cursor: 'zoom-in'
                 });
-
                 image.parentElement.addEventListener('wheel', currentPanzoom.zoomWithWheel);
-            };
+            } else {
+                image.onload = function() {
+                    currentPanzoom = Panzoom(image, {
+                        maxScale: 5,
+                        minScale: 0.5,
+                        increment: 0.3,
+                        animate: true,
+                        cursor: 'zoom-in'
+                    });
+                    image.parentElement.addEventListener('wheel', currentPanzoom.zoomWithWheel);
+                };
+            }
         }
 
         // Gallery management
@@ -1155,13 +1216,14 @@
             }
 
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-            loadGallery();
+            loadGallery(); // Reload gallery to show new item
         }
 
         function getHistory() {
             try {
                 return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            } catch {
+            } catch (e) {
+                console.error("Error parsing history from localStorage:", e);
                 return [];
             }
         }
@@ -1199,7 +1261,7 @@
                 <img src="${item.resultUrl}" alt="Detection result" class="gallery-thumbnail" 
                      onerror="this.src='${item.originalUrl}'">
                 <div class="gallery-meta">
-                    <div><strong>${item.filename}</strong></div>
+                    <div><strong>${item.filename.split('_')[0] || 'Unknown'}</strong></div>
                     <div>${item.totalDetections} object(s) detected</div>
                     <div>${date} at ${time}</div>
                 </div>
@@ -1222,23 +1284,47 @@
         }
 
         function clearHistory() {
-            if (confirm('Are you sure you want to clear all detection history?')) {
+            // Using a custom modal-like confirmation instead of `confirm()`
+            showNotification('warning', 'Confirm Clear History', 'Are you sure you want to clear all detection history? This cannot be undone.', true, () => {
                 localStorage.removeItem(STORAGE_KEY);
                 loadGallery();
                 showNotification('success', 'History Cleared', 'All detection history has been removed.');
-            }
+            });
         }
+
+        // UI Reset Function
+        function resetUI() {
+            elements.fileInput.value = ''; // Clear the selected file
+            elements.imagePreview.src = ''; // Clear image preview source
+            elements.imagePreview.style.display = 'none'; // Hide preview
+            elements.dropZoneContent.style.display = 'flex'; // Show drop zone text
+            elements.dropZone.style.minHeight = '200px'; // Reset drop zone height
+
+            elements.originalImage.src = ''; // Clear result images
+            elements.resultImage.src = '';
+            hideResults(); // Hide results section
+            elements.detectionStats.innerHTML = ''; // Clear stats
+
+            if (currentPanzoom) {
+                currentPanzoom.destroy(); // Destroy panzoom instance
+                currentPanzoom = null;
+            }
+
+            showNotification('success', 'Ready for New Upload', 'The interface has been reset. Upload another image!');
+            elements.uploadForm.scrollIntoView({ behavior: 'smooth' }); // Scroll back to upload form
+        }
+
 
         // Modal functions
         function openModal(src) {
             elements.modalImage.src = src;
             elements.imageModal.classList.add('show');
-            document.body.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
         }
 
         function closeModal() {
             elements.imageModal.classList.remove('show');
-            document.body.style.overflow = '';
+            document.body.style.overflow = ''; // Restore scrolling
         }
 
         // Utility functions
@@ -1269,8 +1355,9 @@
             document.body.removeChild(link);
         }
 
-        function showNotification(type, title, message) {
-            // Remove existing notifications
+        // Enhanced Notification System to support confirmation dialogs
+        function showNotification(type, title, message, isConfirm = false, onConfirm = null) {
+            // Remove existing notifications to prevent stacking
             const existing = document.querySelector('.notification');
             if (existing) existing.remove();
 
@@ -1279,31 +1366,58 @@
             
             const icon = type === 'success' ? 'check-circle' : 
                         type === 'error' ? 'exclamation-circle' : 
-                        'exclamation-triangle';
+                        type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+
+            let buttonsHtml = '';
+            if (isConfirm) {
+                buttonsHtml = `
+                    <div style="margin-top: 10px; display: flex; gap: 10px; justify-content: flex-end;">
+                        <button class="notification-close" style="background: none; border: 1px solid currentColor; padding: 5px 10px; border-radius: 5px; cursor: pointer; color: inherit;" onclick="this.closest('.notification').remove()">Cancel</button>
+                        <button class="notification-confirm" style="background: currentColor; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; color: white;" onclick="handleConfirmNotification('${type}')">Confirm</button>
+                    </div>
+                `;
+            }
 
             notification.innerHTML = `
-                <i class="fas fa-${icon}"></i>
+                <i class="fas fa-${icon}" style="font-size: 1.5rem;"></i>
                 <div class="notification-content">
                     <div class="notification-title">${title}</div>
                     <div class="notification-message">${message}</div>
+                    ${buttonsHtml}
                 </div>
-                <button class="notification-close" onclick="this.parentElement.remove()">
-                    <i class="fas fa-times"></i>
-                </button>
+                ${!isConfirm ? '<button class="notification-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>' : ''}
             `;
 
             document.body.appendChild(notification);
 
+            // Store the onConfirm callback for later use if it's a confirmation
+            if (isConfirm) {
+                notification.dataset.onConfirm = 'true'; // Mark as confirmation
+                window.currentConfirmCallback = onConfirm; // Store the callback globally
+            }
+
             // Show notification
             setTimeout(() => notification.classList.add('show'), 100);
 
-            // Auto-remove after 5 seconds
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.classList.remove('show');
-                    setTimeout(() => notification.remove(), 300);
-                }
-            }, 5000);
+            // Auto-remove after 5 seconds if not a confirmation
+            if (!isConfirm) {
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.classList.remove('show');
+                        setTimeout(() => notification.remove(), 300);
+                    }
+                }, 5000);
+            }
+        }
+
+        // Global handler for confirmation button in notifications
+        function handleConfirmNotification(type) {
+            const notification = document.querySelector(`.notification.${type}[data-on-confirm="true"]`);
+            if (notification && window.currentConfirmCallback) {
+                window.currentConfirmCallback(); // Execute the stored callback
+                notification.remove(); // Remove the notification
+                window.currentConfirmCallback = null; // Clear the callback
+            }
         }
 
         async function checkServerHealth() {
@@ -1321,7 +1435,7 @@
             }
         }
 
-        // Handle download function
+        // Handle download function (already present, but keeping for completeness)
         function handleDownload() {
             if (elements.resultImage.src) {
                 downloadImage(elements.resultImage.src, 'detection_result.jpg');
