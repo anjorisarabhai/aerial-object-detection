@@ -1,21 +1,1332 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>YOLO Inference App</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyVision - Advanced Aerial Object Detection</title>
+    <!-- Google Fonts: Inter for modern, clean look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom notification styles -->
+    <style>
+        /* Enhanced CSS Variables for a professional, modern palette */
+        :root {
+            --primary: 210 100% 60%;
+            --primary-foreground: 0 0% 100%;
+            --primary-dark: 210 100% 45%;
+            
+            --secondary: 220 14% 96%;
+            --secondary-foreground: 220 9% 46%;
+            --secondary-dark: 220 13% 15%;
+            
+            --accent: 142 76% 36%;
+            --accent-foreground: 0 0% 100%;
+            --accent-dark: 142 69% 58%;
+            
+            --background: 0 0% 100%;
+            --background-alt: 220 14% 98%;
+            --background-dark: 220 13% 9%;
+            --background-dark-alt: 220 13% 12%;
+            
+            --foreground: 220 9% 9%;
+            --foreground-dark: 0 0% 95%;
+            --foreground-muted: 220 9% 46%;
+            --foreground-muted-dark: 220 5% 65%;
+            
+            --border: 220 13% 91%;
+            --border-dark: 220 13% 20%;
+            
+            --error: 0 84% 60%;
+            --error-foreground: 0 0% 100%;
+            --warning: 38 92% 50%;
+            --warning-foreground: 0 0% 100%;
+            --success: 142 76% 36%;
+            --success-foreground: 0 0% 100%;
+            
+            --shadow: 220 13% 9%;
+            --shadow-dark: 0 0% 0%;
+            
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--background-alt)));
+            color: hsl(var(--foreground));
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: var(--transition);
+            overflow-x: hidden;
+        }
+
+        body.dark {
+            background: linear-gradient(135deg, hsl(var(--background-dark)), hsl(var(--background-dark-alt)));
+            color: hsl(var(--foreground-dark));
+        }
+
+        /* Navigation Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: hsla(var(--background), 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid hsl(var(--border));
+            padding: 1rem 2rem;
+            transition: var(--transition);
+        }
+
+        body.dark .header {
+            background: hsla(var(--background-dark), 0.8);
+            border-bottom-color: hsl(var(--border-dark));
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: hsl(var(--primary));
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            background: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        body.dark .theme-toggle {
+            border-color: hsl(var(--border-dark));
+            background: hsl(var(--background-dark));
+            color: hsl(var(--foreground-dark));
+        }
+
+        .theme-toggle:hover {
+            background: hsl(var(--secondary));
+            transform: translateY(-1px);
+        }
+
+        body.dark .theme-toggle:hover {
+            background: hsl(var(--secondary-dark));
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: hsl(var(--foreground-muted));
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        body.dark .hero p {
+            color: hsl(var(--foreground-muted-dark));
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: hsl(var(--background));
+            border: 1px solid hsl(var(--border));
+            border-radius: calc(var(--radius) * 2);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px hsla(var(--shadow), 0.1);
+            transition: var(--transition);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        body.dark .upload-section {
+            background: hsl(var(--background-dark-alt));
+            border-color: hsl(var(--border-dark));
+            box-shadow: 0 4px 6px -1px hsla(var(--shadow-dark), 0.3);
+        }
+
+        .upload-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .drop-zone {
+            border: 2px dashed hsl(var(--border));
+            border-radius: var(--radius);
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: hsl(var(--background-alt));
+        }
+
+        body.dark .drop-zone {
+            border-color: hsl(var(--border-dark));
+            background: hsl(var(--background-dark));
+        }
+
+        .drop-zone.drag-over {
+            border-color: hsl(var(--primary));
+            background: hsla(var(--primary), 0.05);
+            transform: scale(1.02);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .drop-zone-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .drop-zone-text {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: hsl(var(--foreground));
+        }
+
+        .drop-zone-subtext {
+            font-size: 0.875rem;
+            color: hsl(var(--foreground-muted));
+        }
+
+        body.dark .drop-zone-subtext {
+            color: hsl(var(--foreground-muted-dark));
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: var(--radius);
+            object-fit: contain;
+            margin-top: 1rem;
+            box-shadow: 0 4px 12px hsla(var(--shadow), 0.15);
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .upload-button {
+            width: 100%;
+            max-width: 200px;
+            margin: 1.5rem auto 0;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-dark)));
+            color: hsl(var(--primary-foreground));
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .upload-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px hsla(var(--primary), 0.4);
+        }
+
+        .upload-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Results Section */
+        .results {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: var(--transition);
+            pointer-events: none;
+        }
+
+        .results.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .results-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .detection-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .stat-badge {
+            padding: 6px 12px;
+            background: hsl(var(--accent));
+            color: hsl(var(--accent-foreground));
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .image-card {
+            background: hsl(var(--background));
+            border: 1px solid hsl(var(--border));
+            border-radius: calc(var(--radius) * 1.5);
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px hsla(var(--shadow), 0.1);
+            transition: var(--transition);
+        }
+
+        body.dark .image-card {
+            background: hsl(var(--background-dark-alt));
+            border-color: hsl(var(--border-dark));
+            box-shadow: 0 4px 6px -1px hsla(var(--shadow-dark), 0.3);
+        }
+
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px hsla(var(--shadow), 0.15);
+        }
+
+        body.dark .image-card:hover {
+            box-shadow: 0 8px 25px hsla(var(--shadow-dark), 0.4);
+        }
+
+        .image-card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+            cursor: zoom-in;
+            transition: var(--transition);
+        }
+
+        .download-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background: hsl(var(--accent));
+            color: hsl(var(--accent-foreground));
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .download-btn:hover {
+            background: hsl(var(--accent-dark));
+            transform: translateY(-1px);
+        }
+
+        /* Gallery Section */
+        .gallery-section {
+            background: hsl(var(--background));
+            border: 1px solid hsl(var(--border));
+            border-radius: calc(var(--radius) * 2);
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 6px -1px hsla(var(--shadow), 0.1);
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        body.dark .gallery-section {
+            background: hsl(var(--background-dark-alt));
+            border-color: hsl(var(--border-dark));
+            box-shadow: 0 4px 6px -1px hsla(var(--shadow-dark), 0.3);
+        }
+
+        .gallery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .gallery-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .clear-history-btn {
+            padding: 8px 16px;
+            background: hsl(var(--error));
+            color: hsl(var(--error-foreground));
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .clear-history-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px hsla(var(--error), 0.4);
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .gallery-item {
+            background: hsl(var(--background-alt));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            padding: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        body.dark .gallery-item {
+            background: hsl(var(--background-dark));
+            border-color: hsl(var(--border-dark));
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px hsla(var(--shadow), 0.15);
+        }
+
+        body.dark .gallery-item:hover {
+            box-shadow: 0 4px 12px hsla(var(--shadow-dark), 0.4);
+        }
+
+        .gallery-thumbnail {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+        }
+
+        .gallery-meta {
+            font-size: 0.75rem;
+            color: hsl(var(--foreground-muted));
+        }
+
+        body.dark .gallery-meta {
+            color: hsl(var(--foreground-muted-dark));
+        }
+
+        .empty-gallery {
+            text-align: center;
+            padding: 3rem;
+            color: hsl(var(--foreground-muted));
+        }
+
+        body.dark .empty-gallery {
+            color: hsl(var(--foreground-muted-dark));
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: hsla(var(--background-dark), 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+            backdrop-filter: blur(8px);
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid hsla(var(--primary), 0.3);
+            border-top: 4px solid hsl(var(--primary));
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        .loading-text {
+            color: hsl(var(--foreground-dark));
+            font-size: 1.125rem;
+            font-weight: 500;
+        }
+
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            max-width: 400px;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 8px 25px hsla(var(--shadow), 0.25);
+            z-index: 10000;
+            transform: translateX(100%);
+            transition: var(--transition);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: hsl(var(--success));
+            color: hsl(var(--success-foreground));
+        }
+
+        .notification.error {
+            background: hsl(var(--error));
+            color: hsl(var(--error-foreground));
+        }
+
+        .notification.warning {
+            background: hsl(var(--warning));
+            color: hsl(var(--warning-foreground));
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .notification-message {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .notification-close:hover {
+            opacity: 1;
+        }
+
+        /* Modal for full-size image viewing */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: hsla(var(--background-dark), 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+            backdrop-filter: blur(8px);
+        }
+
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+        }
+
+        .modal-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: var(--radius);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: -3rem;
+            right: 0;
+            background: hsl(var(--background));
+            border: 1px solid hsl(var(--border));
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: hsl(var(--foreground));
+        }
+
+        body.dark .modal-close {
+            background: hsl(var(--background-dark));
+            border-color: hsl(var(--border-dark));
+            color: hsl(var(--foreground-dark));
+        }
+
+        .modal-close:hover {
+            transform: scale(1.1);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .nav {
+                padding: 0.5rem 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header {
+                padding: 1rem;
+                position: relative;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .upload-section,
+            .gallery-section {
+                padding: 1.5rem;
+            }
+
+            .drop-zone {
+                padding: 2rem 1rem;
+                min-height: 150px;
+            }
+
+            .images-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+
+            .notification {
+                top: 1rem;
+                right: 1rem;
+                left: 1rem;
+                max-width: none;
+            }
+
+            .modal-close {
+                top: -2rem;
+                width: 36px;
+                height: 36px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h2>Upload an Image for Object Detection</h2>
-  <form method="POST" action="/predict" enctype="multipart/form-data">
-    <input type="file" name="image" required>
-    <input type="submit" value="Detect">
-  </form>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-eye"></i>
+                </div>
+                SkyVision
+            </div>
+            <div class="nav-actions">
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                    <span id="theme-text">Dark Mode</span>
+                </button>
+            </div>
+        </nav>
+    </header>
 
-  {% if uploaded_img %}
-    <h3>Original Image</h3>
-    <img src="{{ url_for('static', filename='uploads/' + uploaded_img) }}" width="400">
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="hero">
+            <h1>Advanced Aerial Object Detection</h1>
+            <p>Upload your aerial images and let our AI-powered detection system identify objects with precision and speed.</p>
+        </div>
 
-    <h3>Predicted Image</h3>
-    <img src="{{ url_for('static', filename='results/' + result_img) }}" width="400">
-  {% endif %}
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <h2 class="upload-title">Upload Image for Detection</h2>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="drop-zone" id="dropZone">
+                    <input type="file" id="fileInput" name="image" accept="image/*" required>
+                    <div class="drop-zone-content" id="dropZoneContent">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="drop-zone-text">Drop your image here</div>
+                        <div class="drop-zone-subtext">or click to browse files</div>
+                    </div>
+                    <img id="imagePreview" class="image-preview" alt="Preview">
+                </div>
+                <button type="submit" class="upload-button" id="uploadButton">
+                    <i class="fas fa-search"></i>
+                    <span>Detect Objects</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results" id="resultsSection">
+            <div class="results-header">
+                <h2 class="results-title">Detection Results</h2>
+                <div class="detection-stats" id="detectionStats"></div>
+            </div>
+            <div class="images-grid">
+                <div class="image-card">
+                    <div class="image-card-title">Original Image</div>
+                    <img id="originalImage" src="" alt="Original Image" onclick="openModal(this.src)">
+                </div>
+                <div class="image-card">
+                    <div class="image-card-title">Detection Results</div>
+                    <img id="resultImage" src="" alt="Detection Results" onclick="openModal(this.src)">
+                    <button class="download-btn" id="downloadBtn">
+                        <i class="fas fa-download"></i>
+                        Download Result
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gallery Section -->
+        <div class="gallery-section">
+            <div class="gallery-header">
+                <h2 class="gallery-title">Recent Detections</h2>
+                <button class="clear-history-btn" onclick="clearHistory()">
+                    <i class="fas fa-trash"></i>
+                    Clear History
+                </button>
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+                <div class="empty-gallery">
+                    <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p>No previous detections yet. Upload an image to get started!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Processing your image...</div>
+    </div>
+
+    <!-- Modal for full-size image viewing -->
+    <div class="modal" id="imageModal" onclick="closeModal()">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <img class="modal-image" id="modalImage" src="" alt="Full size image">
+        </div>
+    </div>
+
+    <!-- Panzoom Library -->
+    <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+
+    <script>
+        // Global variables
+        let currentPanzoom = null;
+        const STORAGE_KEY = 'skyVisionHistory';
+        const MAX_HISTORY = 20;
+
+        // DOM elements
+        const elements = {
+            dropZone: document.getElementById('dropZone'),
+            fileInput: document.getElementById('fileInput'),
+            imagePreview: document.getElementById('imagePreview'),
+            dropZoneContent: document.getElementById('dropZoneContent'),
+            uploadForm: document.getElementById('uploadForm'),
+            uploadButton: document.getElementById('uploadButton'),
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            resultsSection: document.getElementById('resultsSection'),
+            detectionStats: document.getElementById('detectionStats'),
+            originalImage: document.getElementById('originalImage'),
+            resultImage: document.getElementById('resultImage'),
+            downloadBtn: document.getElementById('downloadBtn'),
+            galleryGrid: document.getElementById('galleryGrid'),
+            imageModal: document.getElementById('imageModal'),
+            modalImage: document.getElementById('modalImage'),
+            themeIcon: document.getElementById('theme-icon'),
+            themeText: document.getElementById('theme-text')
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTheme();
+            loadGallery();
+            setupEventListeners();
+            checkServerHealth();
+        });
+
+        // Theme Management
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark');
+                elements.themeIcon.className = 'fas fa-sun';
+                elements.themeText.textContent = 'Light Mode';
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            if (isDark) {
+                elements.themeIcon.className = 'fas fa-sun';
+                elements.themeText.textContent = 'Light Mode';
+            } else {
+                elements.themeIcon.className = 'fas fa-moon';
+                elements.themeText.textContent = 'Dark Mode';
+            }
+        }
+
+        // Event Listeners Setup
+        function setupEventListeners() {
+            // File input change
+            elements.fileInput.addEventListener('change', handleFileSelect);
+
+            // Drag and drop events
+            elements.dropZone.addEventListener('dragover', handleDragOver);
+            elements.dropZone.addEventListener('dragleave', handleDragLeave);
+            elements.dropZone.addEventListener('drop', handleDrop);
+            elements.dropZone.addEventListener('click', () => elements.fileInput.click());
+
+            // Form submission
+            elements.uploadForm.addEventListener('submit', handleFormSubmit);
+
+            // Download button
+            elements.downloadBtn.addEventListener('click', handleDownload);
+
+            // Modal close on outside click
+            elements.imageModal.addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+
+            // Keyboard events
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeModal();
+                if (e.key === 't' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    toggleTheme();
+                }
+            });
+        }
+
+        // File handling functions
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                displayImagePreview(file);
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            elements.dropZone.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            elements.dropZone.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            elements.dropZone.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                elements.fileInput.files = files;
+                displayImagePreview(files[0]);
+            }
+        }
+
+        function displayImagePreview(file) {
+            if (!file.type.startsWith('image/')) {
+                showNotification('error', 'Invalid File', 'Please select a valid image file.');
+                return;
+            }
+
+            if (file.size > 16 * 1024 * 1024) {
+                showNotification('error', 'File Too Large', 'Please select an image smaller than 16MB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                elements.imagePreview.src = e.target.result;
+                elements.imagePreview.style.display = 'block';
+                elements.dropZoneContent.style.display = 'none';
+                elements.dropZone.style.minHeight = 'auto';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Form submission and API calls
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+
+            if (!elements.fileInput.files.length) {
+                showNotification('warning', 'No File Selected', 'Please select an image to upload.');
+                return;
+            }
+
+            showLoading(true);
+            hideResults();
+
+            const formData = new FormData();
+            formData.append('image', elements.fileInput.files[0]);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || `HTTP error! status: ${response.status}`);
+                }
+
+                if (result.status === 'success') {
+                    displayResults(result);
+                    saveToHistory(result);
+                    showNotification('success', 'Detection Complete', 
+                        `Found ${result.total_detections} object(s) in your image.`);
+                } else {
+                    throw new Error(result.error || 'Unknown error occurred');
+                }
+
+            } catch (error) {
+                console.error('Prediction failed:', error);
+                showNotification('error', 'Detection Failed', error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Results display
+        function displayResults(result) {
+            // Update images
+            elements.originalImage.src = result.uploaded_image_url;
+            elements.resultImage.src = result.result_image_url;
+
+            // Update detection statistics
+            displayDetectionStats(result.detection_stats, result.total_detections);
+
+            // Setup download button
+            elements.downloadBtn.onclick = () => downloadImage(result.result_image_url, `detection_result_${result.filename}`);
+
+            // Setup panzoom for result image
+            setupPanzoom(elements.resultImage);
+
+            // Show results
+            showResults();
+        }
+
+        function displayDetectionStats(stats, total) {
+            elements.detectionStats.innerHTML = '';
+
+            if (total === 0) {
+                elements.detectionStats.innerHTML = '<div class="stat-badge">No objects detected</div>';
+                return;
+            }
+
+            elements.detectionStats.innerHTML = `<div class="stat-badge">Total: ${total}</div>`;
+
+            Object.entries(stats).forEach(([className, count]) => {
+                const badge = document.createElement('div');
+                badge.className = 'stat-badge';
+                badge.textContent = `${className}: ${count}`;
+                elements.detectionStats.appendChild(badge);
+            });
+        }
+
+        function setupPanzoom(image) {
+            if (currentPanzoom) {
+                currentPanzoom.destroy();
+            }
+
+            image.onload = function() {
+                currentPanzoom = Panzoom(image, {
+                    maxScale: 5,
+                    minScale: 0.5,
+                    increment: 0.3,
+                    animate: true,
+                    cursor: 'zoom-in'
+                });
+
+                image.parentElement.addEventListener('wheel', currentPanzoom.zoomWithWheel);
+            };
+        }
+
+        // Gallery management
+        function saveToHistory(result) {
+            let history = getHistory();
+            
+            const historyItem = {
+                id: Date.now(),
+                timestamp: new Date().toISOString(),
+                filename: result.filename,
+                originalUrl: result.uploaded_image_url,
+                resultUrl: result.result_image_url,
+                detectionStats: result.detection_stats,
+                totalDetections: result.total_detections,
+                fileSize: result.file_size
+            };
+
+            history.unshift(historyItem);
+            
+            // Keep only the most recent items
+            if (history.length > MAX_HISTORY) {
+                history = history.slice(0, MAX_HISTORY);
+            }
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            loadGallery();
+        }
+
+        function getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            } catch {
+                return [];
+            }
+        }
+
+        function loadGallery() {
+            const history = getHistory();
+            
+            if (history.length === 0) {
+                elements.galleryGrid.innerHTML = `
+                    <div class="empty-gallery">
+                        <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                        <p>No previous detections yet. Upload an image to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            elements.galleryGrid.innerHTML = '';
+
+            history.forEach(item => {
+                const galleryItem = createGalleryItem(item);
+                elements.galleryGrid.appendChild(galleryItem);
+            });
+        }
+
+        function createGalleryItem(item) {
+            const div = document.createElement('div');
+            div.className = 'gallery-item';
+            div.onclick = () => viewGalleryItem(item);
+
+            const date = new Date(item.timestamp).toLocaleDateString();
+            const time = new Date(item.timestamp).toLocaleTimeString();
+            
+            div.innerHTML = `
+                <img src="${item.resultUrl}" alt="Detection result" class="gallery-thumbnail" 
+                     onerror="this.src='${item.originalUrl}'">
+                <div class="gallery-meta">
+                    <div><strong>${item.filename}</strong></div>
+                    <div>${item.totalDetections} object(s) detected</div>
+                    <div>${date} at ${time}</div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        function viewGalleryItem(item) {
+            // Update main results view
+            elements.originalImage.src = item.originalUrl;
+            elements.resultImage.src = item.resultUrl;
+            displayDetectionStats(item.detectionStats, item.totalDetections);
+            elements.downloadBtn.onclick = () => downloadImage(item.resultUrl, `detection_result_${item.filename}`);
+            setupPanzoom(elements.resultImage);
+            showResults();
+
+            // Scroll to results
+            elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all detection history?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                loadGallery();
+                showNotification('success', 'History Cleared', 'All detection history has been removed.');
+            }
+        }
+
+        // Modal functions
+        function openModal(src) {
+            elements.modalImage.src = src;
+            elements.imageModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            elements.imageModal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        // Utility functions
+        function showLoading(show) {
+            if (show) {
+                elements.loadingOverlay.classList.add('active');
+                elements.uploadButton.disabled = true;
+            } else {
+                elements.loadingOverlay.classList.remove('active');
+                elements.uploadButton.disabled = false;
+            }
+        }
+
+        function showResults() {
+            elements.resultsSection.classList.add('show');
+        }
+
+        function hideResults() {
+            elements.resultsSection.classList.remove('show');
+        }
+
+        function downloadImage(url, filename) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function showNotification(type, title, message) {
+            // Remove existing notifications
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icon = type === 'success' ? 'check-circle' : 
+                        type === 'error' ? 'exclamation-circle' : 
+                        'exclamation-triangle';
+
+            notification.innerHTML = `
+                <i class="fas fa-${icon}"></i>
+                <div class="notification-content">
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-message">${message}</div>
+                </div>
+                <button class="notification-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Show notification
+            setTimeout(() => notification.classList.add('show'), 100);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.classList.remove('show');
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        async function checkServerHealth() {
+            try {
+                const response = await fetch('/health');
+                const health = await response.json();
+                
+                if (!health.model_loaded) {
+                    showNotification('warning', 'Model Not Loaded', 
+                        'The AI model is not properly loaded. Please check server logs.');
+                }
+            } catch (error) {
+                showNotification('error', 'Server Connection', 
+                    'Unable to connect to the detection server. Please try again later.');
+            }
+        }
+
+        // Handle download function
+        function handleDownload() {
+            if (elements.resultImage.src) {
+                downloadImage(elements.resultImage.src, 'detection_result.jpg');
+            }
+        }
+    </script>
 </body>
 </html>
