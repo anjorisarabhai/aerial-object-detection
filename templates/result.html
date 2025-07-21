@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Detection Result</title>
+</head>
+<body>
+    <h2>Uploaded Image</h2>
+    <img src="{{ url_for('static', filename='uploads/' + uploaded_image) }}" width="400">
+
+    <h2>Detected Image</h2>
+    <img src="{{ url_for('static', filename='results/' + result_image) }}" width="400">
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>YOLO Inference App</title>
+</head>
+<body>
+  <h2>Upload an Image for Object Detection</h2>
+  <form method="POST" action="/predict" enctype="multipart/form-data">
+    <input type="file" name="image" required>
+    <input type="submit" value="Detect">
+  </form>
+
+  {% if uploaded_img %}
+    <h3>Original Image</h3>
+    <img src="{{ url_for('static', filename='uploads/' + uploaded_img) }}" width="400">
+
+    <h3>Predicted Image</h3>
+    <img src="{{ url_for('static', filename='results/' + result_img) }}" width="400">
+  {% endif %}
+</body>
+</html>
